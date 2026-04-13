@@ -229,7 +229,9 @@ void solicitar_publicacao_mqtt(enum MQTT_MSG_TYPE tipo_msg, enum CorDetectada co
     uint16_t valor = (uint16_t)((tipo_msg & 0xFF) | ((cor & 0xFF) << 8));
     // Empacota o comando e o valor em uma única palavra de 32 bits para a FIFO.
     uint32_t pacote = (FIFO_CMD_PUBLICAR_MQTT << 16) | valor;
-    multicore_fifo_push_blocking(pacote);
+    if (multicore_fifo_wready()) {
+        multicore_fifo_push_blocking(pacote);
+    }
 }
 
 /**
@@ -737,9 +739,13 @@ int main() {
             if (aht10_read_data(i2c0, &dados_sensor)) {
                 // Envia dados para o núcleo 1 publicar via MQTT.
                 uint16_t temp_int = (uint16_t)(dados_sensor.temperature * 100.0f);
-                multicore_fifo_push_blocking((FIFO_CMD_PUB_SENSOR_TEMP << 16) | temp_int);
+                if (multicore_fifo_wready()) {
+                    multicore_fifo_push_blocking((FIFO_CMD_PUB_SENSOR_TEMP << 16) | temp_int);
+                }
                 uint16_t umid_int = (uint16_t)(dados_sensor.humidity * 100.0f);
-                multicore_fifo_push_blocking((FIFO_CMD_PUB_SENSOR_UMID << 16) | umid_int);
+                if (multicore_fifo_wready()) {
+                    multicore_fifo_push_blocking((FIFO_CMD_PUB_SENSOR_UMID << 16) | umid_int);
+                }
             }
             timer_iniciar(&fechadura.timer_leitura_sensor, 10000000); // Lê a cada 10 segundos.
         }
@@ -870,6 +876,7 @@ void funcao_wifi_nucleo1() {
                 uint8_t tipo_msg = valor & 0xFF;
                 uint8_t cor_id = (valor >> 8) & 0xFF;
                 char msg_buffer[100], cor_str[15], base_topic[100];
+                bool mensagem_valida = false;
                 
                 // Mapeia o ID da cor para uma string.
                 switch ((enum CorDetectada)cor_id) {
@@ -881,31 +888,34 @@ void funcao_wifi_nucleo1() {
                 
                 // Constrói a mensagem e o tópico com base no tipo de mensagem recebido.
                 switch ((enum MQTT_MSG_TYPE)tipo_msg) {
-                    case MSG_STATUS_AGUARDANDO_CARTAO: strcpy(base_topic, TOPICO_STATUS); strcpy(msg_buffer, "Aguardando cartao"); break;
-                    case MSG_STATUS_CARTAO_LIDO: strcpy(base_topic, TOPICO_STATUS); sprintf(msg_buffer, "Cartao %s lido", cor_str); break;
-                    case MSG_STATUS_AGUARDANDO_SENHA: strcpy(base_topic, TOPICO_STATUS); strcpy(msg_buffer, "Aguardando senha"); break;
-                    case MSG_STATUS_SISTEMA_ABERTO: strcpy(base_topic, TOPICO_STATUS); strcpy(msg_buffer, "Sistema Aberto"); break;
-                    case MSG_STATUS_SISTEMA_FECHADO: strcpy(base_topic, TOPICO_STATUS); strcpy(msg_buffer, "Sistema Fechado"); break;
-                    case MSG_STATUS_MODO_ADMIN: strcpy(base_topic, TOPICO_STATUS); strcpy(msg_buffer, "Modo Administracao"); break;
-                    case MSG_LOG_ACESSO_OK: strcpy(base_topic, TOPICO_HISTORICO); sprintf(msg_buffer, "ACESSO LIBERADO: Cartao %s.", cor_str); break;
-                    case MSG_LOG_ACESSO_FALHA: strcpy(base_topic, TOPICO_HISTORICO); sprintf(msg_buffer, "FALHA: Senha incorreta para o Cartao %s.", cor_str); break;
-                    case MSG_LOG_EVENTO_TIMEOUT_SENHA: strcpy(base_topic, TOPICO_HISTORICO); strcpy(msg_buffer, "AVISO: Timeout para digitacao da senha."); break;
-                    case MSG_LOG_EVENTO_AUTO_LOCK: strcpy(base_topic, TOPICO_HISTORICO); strcpy(msg_buffer, "EVENTO: Travamento automatico do sistema."); break;
-                    case MSG_LOG_OPERACAO_CANCELADA: strcpy(base_topic, TOPICO_HISTORICO); strcpy(msg_buffer, "AVISO: Operacao cancelada pelo usuario."); break;
-                    case MSG_LOG_ADMIN_INICIADO: strcpy(base_topic, TOPICO_HISTORICO); strcpy(msg_buffer, "ADMIN: Modo de alteracao de senha iniciado."); break;
-                    case MSG_LOG_ADMIN_SENHA_ALTERADA: strcpy(base_topic, TOPICO_HISTORICO); sprintf(msg_buffer, "ADMIN: Senha para Cartao %s foi alterada.", cor_str); break;
-                    case MSG_LOG_HEARTBEAT: strcpy(base_topic, TOPICO_HEARTBEAT); strcpy(msg_buffer, "ok"); break;
-                    case MSG_ALARM_TEMP_ON: strcpy(base_topic, "alarme"); strcpy(msg_buffer, "{\"alarme\":\"temperatura\", \"status\":\"ativo\"}"); break;
-                    case MSG_ALARM_TEMP_OFF: strcpy(base_topic, "alarme"); strcpy(msg_buffer, "{\"alarme\":\"temperatura\", \"status\":\"ok\"}"); break;
+                    case MSG_STATUS_AGUARDANDO_CARTAO: strcpy(base_topic, TOPICO_STATUS); strcpy(msg_buffer, "Aguardando cartao"); mensagem_valida = true; break;
+                    case MSG_STATUS_CARTAO_LIDO: strcpy(base_topic, TOPICO_STATUS); sprintf(msg_buffer, "Cartao %s lido", cor_str); mensagem_valida = true; break;
+                    case MSG_STATUS_AGUARDANDO_SENHA: strcpy(base_topic, TOPICO_STATUS); strcpy(msg_buffer, "Aguardando senha"); mensagem_valida = true; break;
+                    case MSG_STATUS_SISTEMA_ABERTO: strcpy(base_topic, TOPICO_STATUS); strcpy(msg_buffer, "Sistema Aberto"); mensagem_valida = true; break;
+                    case MSG_STATUS_SISTEMA_FECHADO: strcpy(base_topic, TOPICO_STATUS); strcpy(msg_buffer, "Sistema Fechado"); mensagem_valida = true; break;
+                    case MSG_STATUS_MODO_ADMIN: strcpy(base_topic, TOPICO_STATUS); strcpy(msg_buffer, "Modo Administracao"); mensagem_valida = true; break;
+                    case MSG_LOG_ACESSO_OK: strcpy(base_topic, TOPICO_HISTORICO); sprintf(msg_buffer, "ACESSO LIBERADO: Cartao %s.", cor_str); mensagem_valida = true; break;
+                    case MSG_LOG_ACESSO_FALHA: strcpy(base_topic, TOPICO_HISTORICO); sprintf(msg_buffer, "FALHA: Senha incorreta para o Cartao %s.", cor_str); mensagem_valida = true; break;
+                    case MSG_LOG_EVENTO_TIMEOUT_SENHA: strcpy(base_topic, TOPICO_HISTORICO); strcpy(msg_buffer, "AVISO: Timeout para digitacao da senha."); mensagem_valida = true; break;
+                    case MSG_LOG_EVENTO_AUTO_LOCK: strcpy(base_topic, TOPICO_HISTORICO); strcpy(msg_buffer, "EVENTO: Travamento automatico do sistema."); mensagem_valida = true; break;
+                    case MSG_LOG_OPERACAO_CANCELADA: strcpy(base_topic, TOPICO_HISTORICO); strcpy(msg_buffer, "AVISO: Operacao cancelada pelo usuario."); mensagem_valida = true; break;
+                    case MSG_LOG_ADMIN_INICIADO: strcpy(base_topic, TOPICO_HISTORICO); strcpy(msg_buffer, "ADMIN: Modo de alteracao de senha iniciado."); mensagem_valida = true; break;
+                    case MSG_LOG_ADMIN_SENHA_ALTERADA: strcpy(base_topic, TOPICO_HISTORICO); sprintf(msg_buffer, "ADMIN: Senha para Cartao %s foi alterada.", cor_str); mensagem_valida = true; break;
+                    case MSG_LOG_HEARTBEAT: strcpy(base_topic, TOPICO_HEARTBEAT); strcpy(msg_buffer, "ok"); mensagem_valida = true; break;
+                    case MSG_ALARM_TEMP_ON: strcpy(base_topic, "alarme"); strcpy(msg_buffer, "{\"alarme\":\"temperatura\", \"status\":\"ativo\"}"); mensagem_valida = true; break;
+                    case MSG_ALARM_TEMP_OFF: strcpy(base_topic, "alarme"); strcpy(msg_buffer, "{\"alarme\":\"temperatura\", \"status\":\"ok\"}"); mensagem_valida = true; break;
+                    default: break;
                 }
 
                 // Adiciona a publicação na fila.
-                int next_tail = (queue_tail + 1) % QUEUE_SIZE;
-                if (next_tail != queue_head) { // Verifica se a fila não está cheia.
-                    snprintf(publication_queue[queue_tail].topico, sizeof(publication_queue[queue_tail].topico), "%s/%s", DEVICE_ID, base_topic);
-                    strncpy(publication_queue[queue_tail].mensagem, msg_buffer, sizeof(publication_queue[queue_tail].mensagem) - 1);
-                    publication_queue[queue_tail].mensagem[sizeof(publication_queue[queue_tail].mensagem) - 1] = '\0';
-                    queue_tail = next_tail;
+                if (mensagem_valida) {
+                    int next_tail = (queue_tail + 1) % QUEUE_SIZE;
+                    if (next_tail != queue_head) { // Verifica se a fila não está cheia.
+                        snprintf(publication_queue[queue_tail].topico, sizeof(publication_queue[queue_tail].topico), "%s/%s", DEVICE_ID, base_topic);
+                        strncpy(publication_queue[queue_tail].mensagem, msg_buffer, sizeof(publication_queue[queue_tail].mensagem) - 1);
+                        publication_queue[queue_tail].mensagem[sizeof(publication_queue[queue_tail].mensagem) - 1] = '\0';
+                        queue_tail = next_tail;
+                    }
                 }
             
             // Comando para publicar dados de sensores (temperatura ou umidade).

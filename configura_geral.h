@@ -11,6 +11,13 @@
 #include "pico/stdlib.h" // Para tipos básicos como uint, bool
 #include "secrets.h"     // Contém credenciais Wi-Fi
 
+// --- Override local por maquina (arquivo ignorado no git) ---
+#if defined(__has_include)
+#if __has_include("configura_local.h")
+#include "configura_local.h"
+#endif
+#endif
+
 // --- Definições de Hardware e Pinos (Raspberry Pi Pico) ---
 
 // LEDs RGB (Cátodo Comum)
@@ -53,9 +60,17 @@
 #define PWM_MAX_DUTY 0xFFFF
 
 // --- Configurações de Rede e MQTT ---
-#define DEVICE_ID "bitdoglab_02" // ID ÚNICO PARA ESTE PROJETO
-#define MQTT_BROKER_IP "192.168.0.18"
+#ifndef DEVICE_ID
+#define DEVICE_ID "bitdoglab_02" // ID UNICO PARA ESTE PROJETO
+#endif
+
+#ifndef MQTT_BROKER_IP
+#define MQTT_BROKER_IP "127.0.0.1"
+#endif
+
+#ifndef MQTT_BROKER_PORT
 #define MQTT_BROKER_PORT 1883
+#endif
 
 // --- Limiares de Sensores para Lógica de Projeto ---
 #define TEMP_MIN_SEGURA 25.0 // Temperatura mínima segura

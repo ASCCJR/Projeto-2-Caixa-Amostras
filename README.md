@@ -1,9 +1,11 @@
 # Projeto 2: Caixa de Amostras Monitorada com BitDogLab
 
 ![Linguagem](https://img.shields.io/badge/Linguagem-C-blue.svg)
-![Plataforma](https://img.shields.io/badge/Plataforma-Raspberry%20Pi%20Pico%20W-purple.svg)
+![Plataforma](https://img.shields.io/badge/Plataforma-Raspberry%20Pi%20Pico%20W-6f42c1.svg)
+![Build](https://img.shields.io/badge/Build-CMake%20%2B%20Ninja-0a7bbb.svg)
 ![Protocolo](https://img.shields.io/badge/Protocolo-MQTT-orange.svg)
-![Visualização](https://img.shields.io/badge/Visualização-Node--RED-red.svg)
+![Dashboard](https://img.shields.io/badge/Dashboard-Node--RED-bf2026.svg)
+![IA](https://img.shields.io/badge/IA-GitHub%20Copilot-181717.svg)
 
 Desenvolvido na plataforma BitDogLab, uma placa de desenvolvimento baseada no Raspberry Pi Pico W, para simular uma fechadura eletrônica com monitoramento em tempo real de umidade e temperatura, aplicados à segurança e integridade de amostras sensíveis.
 
@@ -21,7 +23,7 @@ O principal objetivo deste projeto é familiarizar o estudante com:
 * **Monitoramento Remoto e Notificações:** Visualização de gráficos e recebimento de alertas no Node-RED.
 * **Conectividade Wi-Fi e MQTT:** Publicação de eventos e status do sistema em tempo real para um dashboard remoto, habilitando a monitorização e interação via IoT.
 * **Processamento Dual-Core (RP2040):** Demonstração da otimização de desempenho através do *offloading* de tarefas de rede para o Core 1, liberando o Core 0 para a lógica crítica da aplicação, otimizando o desempenho do Core 0 para a lógica da aplicação e leitura de múltiplos sensores.
-* * **Programação Não-Bloqueante:** Foco na implementação de drivers e lógica que permitem a execução de múltiplas tarefas sem interrupções (polling e timers), garantindo um sistema responsivo.
+* **Programação Não-Bloqueante:** Foco na implementação de drivers e lógica que permitem a execução de múltiplas tarefas sem interrupções (polling e timers), garantindo um sistema responsivo.
 
 ## ✨ Funcionalidades
 
@@ -34,10 +36,8 @@ O sistema combina as funcionalidades do Projeto 1 (BitDogLock 2FA) com o monitor
 
 ## 📦 Hardware Necessário
 
-Para reproduzir este projeto, você precisará da plataforma **BitDogLab** equipada com:
+Para reproduzir este projeto, você precisará da plataforma [BitDogLab](https://github.com/BitDogLab/BitDogLab) equipada com:
 
-* [BitDogLab](https://github.com/BitDogLab/BitDogLab) com:
-  
 * **Raspberry Pi Pico W**
 * **Display OLED (0.96" 128x64 I2C)**
 * **Matriz de LEDs WS2812B (Neopixel) 5x5**
@@ -52,17 +52,35 @@ Para reproduzir este projeto, você precisará da plataforma **BitDogLab** equip
 ## ⚙️ Configuração do Ambiente
 
 1.  **Ambiente de Desenvolvimento:** Este projeto é desenvolvido em C utilizando o SDK oficial da Raspberry Pi Pico. Certifique-se de ter o ambiente de desenvolvimento configurado (Recomendado: VS Code com as extensões necessárias para Pico/C/C++, como a Extensão Raspberry Pi Pico e a CMake Tools, ambas disponiveis na aba extensões do VS Code).
-3.  **Bibliotecas Adicionais:** Todos os drivers personalizados para os periféricos (TCS34725, OLED, Matriz, etc.) estão incluídos diretamente no repositório do firmware.
-4.  **Node-RED:** Instale o Node-RED em seu computador.
-5.  **Broker MQTT:** Um broker MQTT (como Mosquitto) é necessário e deve estar acessível pela sua rede.
+2.  **Bibliotecas Adicionais:** Todos os drivers personalizados para os periféricos (TCS34725, OLED, Matriz, etc.) estão incluídos diretamente no repositório do firmware.
+3.  **Node-RED:** Instale o Node-RED em seu computador.
+4.  **Broker MQTT:** Um broker MQTT (como Mosquitto) é necessário e deve estar acessível pela sua rede.
+
+## 🤖 Provisionamento Assistido por IA (VS Code + Copilot)
+
+Este repositório inclui o arquivo `.github/copilot-instructions.md`, que orienta o GitHub Copilot Chat a executar um fluxo consistente de clone limpo para:
+
+1. Validar/criar arquivos locais por máquina (`secrets.local.h` e `configura_local.h`).
+2. Detectar e instalar apenas dependências ausentes (CMake/Ninja, Node.js, Mosquitto e toolchain Pico).
+3. Testar MQTT local (publish/subscribe) antes de validar firmware na placa.
+4. Compilar o firmware e só então orientar gravação (quando houver hardware conectado).
+5. Subir Node-RED, importar `dashboard_projeto2.json` e validar `/ui`.
+
+Boas práticas:
+
+- Não commitar credenciais: usar `secrets.local.h` (ignorado pelo git).
+- Não fixar broker por máquina em `configura_geral.h`: usar `configura_local.h`.
+- Quando faltar permissão de admin para Mosquitto, usar fallback com `mosquitto.local.conf` em porta 1884.
 
 ## 📂 Estrutura do Código
 
 O firmware está organizado para facilitar a compreensão e a manutenção:
 * `main.c`: Contém a lógica principal da máquina de estados do sistema, a orquestração dos diferentes modos de operação e a interação central com os drivers do Core 0.
 * `funcao_wifi_nucleo1()`: Função executada no Core 1 (Raspberry Pi Pico W), dedicada à conectividade Wi-Fi e à comunicação MQTT, otimizando o desempenho do Core 0.
-* `configura_geral.h`: Definições globais e de pinagem, além das informações do seu broker MQTT (`MQTT_BROKER_IP` / `MQTT_BROKER_PORT`) e dos limiares de temperatura/umidade.
-* `secrets.h`: Ele armazena as credenciais da sua rede Wi-Fi (`WIFI_SSID` e `WIFI_PASS`). 
+* `configura_geral.h`: Definições globais e de pinagem, com suporte a override por máquina via `configura_local.h`.
+* `secrets.h`: Define credenciais Wi-Fi com suporte a override local por `secrets.local.h`.
+* `configura_local.example.h` e `secrets.local.example.h`: Templates para criação dos arquivos locais (`configura_local.h` e `secrets.local.h`), ignorados pelo git.
+* `.github/copilot-instructions.md`: Procedimento operacional para agentes de IA no VS Code (clone limpo, dependências, build, MQTT e Node-RED).
 * `display.c/.h`: Driver para o display OLED I2C, incluindo suporte a caracteres acentuados.
 * `matriz.c/.h`: Driver e funções para o controle da matriz de LEDs WS2812B, com diversas animações visuais.
 * `keypad.c/.h`: Driver para o teclado matricial 4x4, incluindo debounce por software para leituras precisas.
@@ -87,26 +105,33 @@ O firmware está organizado para facilitar a compreensão e a manutenção:
         * **Demais componentes (Display OLED, Matriz de LEDs, LED RGB, Buzzer):** Utilizam o mapeamentos de pinos padrão da BitDogLab
     * **Caso não possua os adaptadores do kit BitDogLab:** As conexões podem ser feitas manualmente com cabos jumper fêmea-fêmea. No entanto, a correção dos pinos no arquivo `configura_geral.h` será necessária para corresponder às suas novas conexões.
     * Se desejar, ajuste os limiares de temperatura e umidade para os alarmes, faça isso no arquivo `configura_geral.h`
-    * * **Tópicos MQTT utilizados pelo sistema (com o `DEVICE_ID` padrão "bitdoglab_02"):**
-        * **Para Comandos (Node-RED para Pico W):**
-            * `bitdoglab_02/comando/estado` (Para comandos como "ADMIN_SENHA" ou "INCENDIO"
-        * **Para Status e Logs (Pico W para Node-RED):**
-            * `bitdoglab_02/status` (Status atual do sistema, ex: "Aguardando cartao", "Sistema Aberto"
-            * `bitdoglab_02/historico` (Logs de eventos, ex: "ACESSO LIBERADO", "FALHA: Senha incorreta"
-            * `bitdoglab_02/heartbeat` (Sinal de que o dispositivo está ativo, "ok" 
+    * **Tópicos MQTT utilizados pelo sistema (com `DEVICE_ID` padrão `bitdoglab_02`):**
+        * **Comando (Node-RED para Pico W):**
+            * `bitdoglab_02/comando/estado` (comando atual: `ADMIN_SENHA`)
+        * **Status e histórico (Pico W para Node-RED):**
+            * `bitdoglab_02/status`
+            * `bitdoglab_02/historico`
+            * `bitdoglab_02/heartbeat`
+        * **Telemetria de sensores (Pico W para Node-RED):**
+            * `bitdoglab_02/sensores/temperatura`
+            * `bitdoglab_02/sensores/umidade`
 
 2.  **Configuração do Firmware:**
     * Abra o projeto no seu ambiente de desenvolvimento (VS Code).
-    * No arquivo `secrets.h`** na raiz do projeto, preencha as informações:
+    * Crie os arquivos locais a partir dos templates:
+        * Copie `secrets.local.example.h` para `secrets.local.h`.
+        * Copie `configura_local.example.h` para `configura_local.h`.
+    * No arquivo `secrets.local.h`, preencha as informações da sua rede Wi-Fi:
         ```c
         #define WIFI_SSID "SeuSSID" // Substitua pelo nome da sua rede Wi-Fi
         #define WIFI_PASS "SuaSenha" // Substitua pela senha da sua rede Wi-Fi
         ```
-    * No arquivo `configura_geral.h`, preencha as informações do seu **broker MQTT** (endereço IP e porta):
+    * No arquivo `configura_local.h`, preencha as informações do seu **broker MQTT** (endereço IP e porta):
         ```c
         #define MQTT_BROKER_IP "SEU_IP_DO_BROKER"
         #define MQTT_BROKER_PORT 1883 // Ou a porta que você estiver usando
         ```
+    * Observação: `secrets.local.h` e `configura_local.h` são ignorados no git e evitam conflito entre máquinas.
     * Compile e faça o upload do firmware para a Raspberry Pi Pico W.
 
 3.  **Configuração do Node-RED e Broker MQTT:**
@@ -116,17 +141,34 @@ O firmware está organizado para facilitar a compreensão e a manutenção:
 
 4.  **Operação do Sistema:**
     * Após o upload do firmware e a inicialização da Pico W, o sistema se conectará à Wi-Fi e ao broker MQTT.
-    * O display OLED exibirá "BitDogLock 2FA" e "Sistema Pronto". O LED RGB pulsará em azul.
+    * O display OLED exibirá "Caixa de Amostras" e "Sistema Pronto" após a conexão MQTT.
     * **Modo de Espera:** O sistema estará aguardando a aproximação de um cartão.
     * **Autenticação:**
          * Aproxime um cartão de cor (verde, vermelho ou azul) do sensor TCS34725.
         * O sistema transicionará para o modo de entrada de senha. Digite a senha de 4 dígitos correspondente no teclado matricial e pressione '#'.
             * As senhas padrão são: **Verde: `1337`**, **Vermelho: `8008`**, **Azul: `4242`**.
         * Para cancelar a digitação e retornar ao modo de espera, pressione '*'.
-    * **Modo de Administração:** Para alterar senhas, envie o comando "ADMIN_SENHA" para o tópico `seu_device_id/comando/estado` via Node-RED.
+    * **Modo de Administração:** Para alterar senhas, envie o comando `ADMIN_SENHA` para `bitdoglab_02/comando/estado` (ou seu `DEVICE_ID` local) via Node-RED.
     * Observe o feedback visual e sonoro no hardware e os logs de eventos em tempo real no dashboard Node-RED.
     * Observe as leituras de sensores e gráficos no dashboard Node-RED.
     * Simule condições de alarme (ex: aquecendo/resfriando o sensor) e observe o feedback local e as notificações remotas.
+
+### 🔧 Troubleshooting Wi-Fi/MQTT
+
+Se a placa ficar travada em "Conectando Broker MQTT":
+
+1. Confirme `MQTT_BROKER_IP`/`MQTT_BROKER_PORT` em `configura_local.h` com o IP atual do host.
+2. Verifique se o broker está ouvindo em rede local (`0.0.0.0`), e não apenas em `127.0.0.1`.
+3. Se não houver permissão de administrador no Windows, rode o fallback com `mosquitto.local.conf` na porta 1884 e atualize `configura_local.h` e Node-RED para a mesma porta.
+
+### 🔧 Troubleshooting Node-RED Dashboard
+
+Se ao importar o fluxo aparecer "Imported unrecognised types" para `ui_*`:
+
+1. Entre em `%USERPROFILE%\\.node-red`.
+2. Execute `npm install node-red-dashboard`.
+3. Reinicie o Node-RED, reimporte o `dashboard_projeto2.json` e faça `Deploy`.
+4. Abra `http://127.0.0.1:1880/ui` para validar o painel.
 
 ## 📊 Dashboard Node-RED
 

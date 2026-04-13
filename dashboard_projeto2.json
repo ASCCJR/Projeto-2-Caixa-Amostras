@@ -1,0 +1,556 @@
+[
+    {
+        "id": "271795122c85cdbb",
+        "type": "tab",
+        "label": "Fluxo 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "00722a5513e3dd96",
+        "type": "mqtt in",
+        "z": "271795122c85cdbb",
+        "name": "Status da Fechadura",
+        "topic": "bitdoglab_02/status",
+        "qos": "1",
+        "datatype": "auto-detect",
+        "broker": "30fe7bc3b7658120",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 230,
+        "y": 80,
+        "wires": [
+            [
+                "34f62038e832c2ec"
+            ]
+        ]
+    },
+    {
+        "id": "83f6b1fa063314cc",
+        "type": "mqtt in",
+        "z": "271795122c85cdbb",
+        "name": "Log de Eventos",
+        "topic": "bitdoglab_02/historico",
+        "qos": "1",
+        "datatype": "auto-detect",
+        "broker": "30fe7bc3b7658120",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 280,
+        "y": 200,
+        "wires": [
+            [
+                "73a7961c17066359"
+            ]
+        ]
+    },
+    {
+        "id": "73a7961c17066359",
+        "type": "function",
+        "z": "271795122c85cdbb",
+        "name": "Formata Log com Hora",
+        "func": "// Pega o histórico anterior que guardamos na memória. Se não existir, começa com uma string vazia.\nvar historico = flow.get('historico') || \"\";\n\n// Pega a hora atual e formata para o padrão brasileiro.\nlet d = new Date();\nlet time = d.toLocaleTimeString('pt-BR');\n\n// Cria a nova linha do log com a hora e a mensagem que chegou.\nlet nova_linha = time + \" - \" + msg.payload;\n\n// Adiciona a nova linha NO INÍCIO do histórico existente, para que os eventos mais recentes apareçam em cima.\nhistorico = nova_linha + \"\\n\" + historico;\n\n// Para não sobrecarregar a tela, vamos limitar o histórico às últimas 10 entradas.\nvar linhas = historico.split(\"\\n\");\nif (linhas.length > 10) {\n    // Remove a linha mais antiga (a última da lista)\n    linhas.pop();\n    historico = linhas.join(\"\\n\");\n}\n\n// Guarda o novo histórico completo na memória para a próxima vez.\nflow.set('historico', historico);\n\n// Envia o histórico COMPLETO para ser exibido no nó de texto.\nmsg.payload = historico;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 530,
+        "y": 200,
+        "wires": [
+            [
+                "cb5fca8eb36cb654"
+            ]
+        ]
+    },
+    {
+        "id": "34f62038e832c2ec",
+        "type": "ui_text",
+        "z": "271795122c85cdbb",
+        "group": "4ee9693fed872a0f",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "name": "Exibe Status",
+        "label": "Status Atual",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": 16,
+        "color": "#000000",
+        "x": 430,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "cb5fca8eb36cb654",
+        "type": "ui_template",
+        "z": "271795122c85cdbb",
+        "group": "4ee9693fed872a0f",
+        "name": "",
+        "order": 3,
+        "width": "6",
+        "height": "9",
+        "format": "<style>\n    .log-container {\n        /* Estilo da caixa */\n        height: 100%;\n        width: 100%;\n        background-color: #f0f0f0;\n        border: 1px solid #ccc;\n        border-radius: 4px;\n        padding: 5px;\n        box-sizing: border-box;\n        /* Garante que o padding não aumente o tamanho */\n    }\n\n    .log-pre {\n        /* Estilo do texto dentro da caixa */\n        height: 100%;\n        margin: 0;\n        overflow-y: auto;\n        /* A mágica da barra de rolagem! */\n        white-space: pre-wrap;\n        /* Garante a quebra de linha */\n        font-family: monospace;\n        /* Fonte boa para logs */\n        font-size: 12px;\n    }\n</style>\n\n<div class=\"log-container\">\n    <div style=\"font-weight: bold; border-bottom: 1px solid #bbb; margin-bottom: 4px;\">Histórico de Eventos</div>\n    <pre class=\"log-pre\" ng-bind-html=\"msg.payload\"></pre>\n</div>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "className": "",
+        "x": 780,
+        "y": 200,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "f02c8f72b4e0a095",
+        "type": "ui_button",
+        "z": "271795122c85cdbb",
+        "name": "Botão Modo Admin",
+        "group": "4ee9693fed872a0f",
+        "order": 4,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "label": "Habilitar Mudança de Senha",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "className": "",
+        "icon": "fa-key",
+        "payload": "ADMIN_SENHA",
+        "payloadType": "str",
+        "topic": "topic",
+        "topicType": "str",
+        "x": 990,
+        "y": 180,
+        "wires": [
+            [
+                "79a4957d86f14409"
+            ]
+        ]
+    },
+    {
+        "id": "79a4957d86f14409",
+        "type": "mqtt out",
+        "z": "271795122c85cdbb",
+        "name": "Envia Comando para Placa",
+        "topic": "bitdoglab_02/comando/estado",
+        "qos": "1",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "30fe7bc3b7658120",
+        "x": 1240,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "5229ad973c8642a6",
+        "type": "mqtt in",
+        "z": "271795122c85cdbb",
+        "name": "Sensor Temperatura",
+        "topic": "bitdoglab_02/sensores/temperatura",
+        "qos": "1",
+        "datatype": "auto-detect",
+        "broker": "30fe7bc3b7658120",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 290,
+        "y": 280,
+        "wires": [
+            [
+                "3149af03940436de"
+            ]
+        ]
+    },
+    {
+        "id": "3149af03940436de",
+        "type": "ui_gauge",
+        "z": "271795122c85cdbb",
+        "name": "",
+        "group": "efbd76591a5ff5af",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "🌡️ Temperatura",
+        "label": "°C",
+        "format": "{{value | number:1}}",
+        "min": 0,
+        "max": "50",
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 580,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "f67fb998c16288b3",
+        "type": "mqtt in",
+        "z": "271795122c85cdbb",
+        "name": "Sensor Umidade",
+        "topic": "bitdoglab_02/sensores/umidade",
+        "qos": "1",
+        "datatype": "auto-detect",
+        "broker": "30fe7bc3b7658120",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 280,
+        "y": 360,
+        "wires": [
+            [
+                "5c5c007729bb1c51"
+            ]
+        ]
+    },
+    {
+        "id": "5c5c007729bb1c51",
+        "type": "ui_gauge",
+        "z": "271795122c85cdbb",
+        "name": "",
+        "group": "efbd76591a5ff5af",
+        "order": 2,
+        "width": "6",
+        "height": "6",
+        "gtype": "gage",
+        "title": "💧 Umidade",
+        "label": "%",
+        "format": "{{value | number:1}}",
+        "min": 0,
+        "max": "100",
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 590,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "a17d6d2c0ed9f24d",
+        "type": "mqtt in",
+        "z": "271795122c85cdbb",
+        "name": "Sensor Temperatura (Log)",
+        "topic": "bitdoglab_02/sensores/temperatura",
+        "qos": "1",
+        "datatype": "auto-detect",
+        "broker": "30fe7bc3b7658120",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 310,
+        "y": 460,
+        "wires": [
+            [
+                "d26a81607e1252be"
+            ]
+        ]
+    },
+    {
+        "id": "d26a81607e1252be",
+        "type": "function",
+        "z": "271795122c85cdbb",
+        "name": "Formata Log de Temperatura",
+        "func": "// Pega o histórico de temperatura anterior. Usa uma variável diferente ('temp_log').\nvar historico = flow.get('temp_log') || \"\";\n\n// Pega a hora atual.\nlet d = new Date();\nlet time = d.toLocaleTimeString('pt-BR');\n\n// Formata a nova linha do log com a unidade \"°C\".\nlet nova_linha = time + \" - Temp: \" + msg.payload + \" °C\";\n\n// Adiciona a nova linha NO INÍCIO do histórico.\nhistorico = nova_linha + \"\\n\" + historico;\n\n// Limita o histórico às últimas 20 entradas, por exemplo.\nvar linhas = historico.split(\"\\n\");\nif (linhas.length > 20) {\n    linhas.pop();\n    historico = linhas.join(\"\\n\");\n}\n\n// Guarda o novo histórico na memória.\nflow.set('temp_log', historico);\n\n// Envia o histórico COMPLETO para ser exibido.\nmsg.payload = historico;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 660,
+        "y": 460,
+        "wires": [
+            [
+                "531c1402aad9a3b1"
+            ]
+        ]
+    },
+    {
+        "id": "531c1402aad9a3b1",
+        "type": "ui_template",
+        "z": "271795122c85cdbb",
+        "group": "63ee1c9cbbaa47ee",
+        "name": "Histórico de Temperatura",
+        "order": 1,
+        "width": "7",
+        "height": "10",
+        "format": "<style>\n    .log-container {\n        /* Estilo da caixa */\n        height: 100%;\n        width: 100%;\n        background-color: #f0f0f0;\n        border: 1px solid #ccc;\n        border-radius: 4px;\n        padding: 5px;\n        box-sizing: border-box;\n        /* Garante que o padding não aumente o tamanho */\n    }\n\n    .log-pre {\n        /* Estilo do texto dentro da caixa */\n        height: 100%;\n        margin: 0;\n        overflow-y: auto;\n        /* A mágica da barra de rolagem! */\n        white-space: pre-wrap;\n        /* Garante a quebra de linha */\n        font-family: monospace;\n        /* Fonte boa para logs */\n        font-size: 12px;\n    }\n</style>\n\n<div class=\"log-container\">\n    <div style=\"font-weight: bold; border-bottom: 1px solid #bbb; margin-bottom: 4px;\">Histórico de Temperatura</div>\n    <pre class=\"log-pre\" ng-bind-html=\"msg.payload\"></pre>\n</div>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "className": "",
+        "x": 990,
+        "y": 460,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "2b4be4e187e97446",
+        "type": "mqtt in",
+        "z": "271795122c85cdbb",
+        "name": "Recebe Alarmes",
+        "topic": "bitdoglab_02/alarme",
+        "qos": "1",
+        "datatype": "json",
+        "broker": "30fe7bc3b7658120",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 280,
+        "y": 540,
+        "wires": [
+            [
+                "a738dea2da888eec",
+                "52b626136cd43158"
+            ]
+        ]
+    },
+    {
+        "id": "a738dea2da888eec",
+        "type": "function",
+        "z": "271795122c85cdbb",
+        "name": "Formata Notificação",
+        "func": "const alarme = msg.payload.alarme;\nconst status = msg.payload.status;\n\nmsg.topic = \"ALARME DE \" + alarme.toUpperCase();\n\nif (status === 'ativo') {\n    msg.payload = \"O alarme foi ATIVADO.\";\n} else {\n    msg.payload = \"O alarme foi NORMALIZADO.\";\n}\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 620,
+        "y": 540,
+        "wires": [
+            [
+                "b9b199de063f96fe"
+            ]
+        ]
+    },
+    {
+        "id": "52b626136cd43158",
+        "type": "function",
+        "z": "271795122c85cdbb",
+        "name": "Atualiza Status dos Alarmes",
+        "func": "let status = flow.get(\"alarm_status\") || { temperatura: \"ok\" };\n\nif (msg.payload.alarme === \"temperatura\") {\n    status.temperatura = msg.payload.status;\n}\n\nflow.set(\"alarm_status\", status);\n\nlet temp_html = (status.temperatura === 'ok') ?\n    '<font color=\"green\">OK</font>' :\n    '<font color=\"red\"><b>ALARME ATIVO</b></font>';\n\nmsg.payload = `\n<div style=\"line-height: 2.5; font-size: 16px;\">\n    <div>🌡️ Temperatura: ${temp_html}</div>\n</div>\n`;\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 620,
+        "y": 600,
+        "wires": [
+            [
+                "ddad241bf11c3d0a"
+            ]
+        ]
+    },
+    {
+        "id": "ddad241bf11c3d0a",
+        "type": "ui_template",
+        "z": "271795122c85cdbb",
+        "group": "efbd76591a5ff5af",
+        "name": "Painel de Alarmes",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "format": "<div ng-bind-html=\"msg.payload\"></div>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "className": "",
+        "x": 930,
+        "y": 600,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b9b199de063f96fe",
+        "type": "ui_toast",
+        "z": "271795122c85cdbb",
+        "position": "top right",
+        "displayTime": "3",
+        "highlight": "",
+        "sendall": true,
+        "outputs": 0,
+        "ok": "OK",
+        "cancel": "",
+        "raw": false,
+        "className": "",
+        "topic": "",
+        "name": "",
+        "x": 910,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "13e9e217e3135ad2",
+        "type": "mqtt in",
+        "z": "271795122c85cdbb",
+        "name": "Recebe Heartbeat",
+        "topic": "bitdoglab_02/heartbeat",
+        "qos": "1",
+        "datatype": "auto-detect",
+        "broker": "30fe7bc3b7658120",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 810,
+        "y": 320,
+        "wires": [
+            [
+                "02c0681e2cba76f7"
+            ]
+        ]
+    },
+    {
+        "id": "02c0681e2cba76f7",
+        "type": "function",
+        "z": "271795122c85cdbb",
+        "name": "Formata Último Heartbeat",
+        "func": "let d = new Date();\nlet time = d.toLocaleTimeString('pt-BR');\nmsg.payload = \"Último sinal de vida recebido às: \" + time;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1070,
+        "y": 320,
+        "wires": [
+            [
+                "d45bb5be9b907c5b"
+            ]
+        ]
+    },
+    {
+        "id": "d45bb5be9b907c5b",
+        "type": "ui_text",
+        "z": "271795122c85cdbb",
+        "group": "efbd76591a5ff5af",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Sinal de Vida (Core 0)",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": 16,
+        "color": "#000000",
+        "x": 1340,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "30fe7bc3b7658120",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "192.168.0.18",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "4ee9693fed872a0f",
+        "type": "ui_group",
+        "name": "🔑 Fechadura 2FA",
+        "tab": "2452ff6ef29c7e60",
+        "order": 1,
+        "disp": true,
+        "width": 6,
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "efbd76591a5ff5af",
+        "type": "ui_group",
+        "name": "📊 Sensores",
+        "tab": "2452ff6ef29c7e60",
+        "order": 2,
+        "disp": true,
+        "width": 6,
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "63ee1c9cbbaa47ee",
+        "type": "ui_group",
+        "name": "🌡️ Controle de Temperatura",
+        "tab": "2452ff6ef29c7e60",
+        "order": 3,
+        "disp": true,
+        "width": "8",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "2452ff6ef29c7e60",
+        "type": "ui_tab",
+        "name": "Home",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    }
+]

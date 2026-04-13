@@ -25,7 +25,7 @@ O principal objetivo deste projeto é familiarizar o estudante com:
 * **Processamento Dual-Core (RP2040):** Demonstração da otimização de desempenho através do *offloading* de tarefas de rede para o Core 1, liberando o Core 0 para a lógica crítica da aplicação, otimizando o desempenho do Core 0 para a lógica da aplicação e leitura de múltiplos sensores.
 * **Programação Não-Bloqueante:** Foco na implementação de drivers e lógica que permitem a execução de múltiplas tarefas sem interrupções (polling e timers), garantindo um sistema responsivo.
 
-## ✨ Funcionalidades
+## ✨ Funcionalidades Principais
 
 O sistema combina as funcionalidades do Projeto 1 (BitDogLock 2FA) com o monitoramento ambiental crítico:
 1.  **Mecanismo de Autenticação (Herdado):** Preserva o sistema de controle de acesso 2FA (cartão de cor + senha numérica) do Projeto 1, para proteger o acesso à caixa.
@@ -58,18 +58,30 @@ Para reproduzir este projeto, você precisará da plataforma [BitDogLab](https:/
 
 ## 🤖 Provisionamento Assistido por IA (VS Code + Copilot)
 
-Este repositório inclui o arquivo `.github/copilot-instructions.md`, que orienta o GitHub Copilot Chat a executar um fluxo consistente de clone limpo para:
+Para facilitar o uso do projeto em clones novos, este repositório inclui o arquivo `.github/copilot-instructions.md`, que orienta o GitHub Copilot Chat a executar um fluxo de preparação e validação do ambiente.
+
+No contexto deste projeto, o fluxo assistido contempla:
 
 1. Validar/criar arquivos locais por máquina (`secrets.local.h` e `configura_local.h`).
-2. Detectar e instalar apenas dependências ausentes (CMake/Ninja, Node.js, Mosquitto e toolchain Pico).
-3. Testar MQTT local (publish/subscribe) antes de validar firmware na placa.
-4. Compilar o firmware e só então orientar gravação (quando houver hardware conectado).
-5. Subir Node-RED, importar `dashboard_projeto2.json` e validar `/ui`.
+2. Diagnóstico e instalação mínima de dependências (Node.js, Mosquitto, CMake/Ninja e toolchain da Pico quando necessário).
+3. Validação operacional do runtime (versões, serviço MQTT e teste publish/subscribe local).
+4. Compilação do firmware por meio da task de build (com fallback de configuração CMake em clone limpo).
+5. Tentativa de gravação na placa (primeiro BOOTSEL e, depois, CMSIS-DAP).
+6. Abertura do Node-RED, importação do `dashboard_projeto2.json` e `Deploy`.
+7. Emissão de relatório final com o resultado de cada etapa.
 
-Boas práticas:
+### Exemplo de solicitação no Copilot Chat
+
+Após abrir o projeto no VS Code, utilize um comando em linguagem natural, por exemplo:
+
+- "Execute o provisionamento completo deste projeto seguindo as instruções do repositório."
+- "Valide dependências, instale apenas o necessário e teste MQTT, Node-RED, build e gravação da placa."
+
+### Boas práticas de uso
 
 - Não commitar credenciais: usar `secrets.local.h` (ignorado pelo git).
 - Não fixar broker por máquina em `configura_geral.h`: usar `configura_local.h`.
+- Em clone limpo, validar `build/build.ninja`; se faltar, configurar CMake e só depois compilar.
 - Quando faltar permissão de admin para Mosquitto, usar fallback com `mosquitto.local.conf` em porta 1884.
 
 ## 📂 Estrutura do Código
@@ -161,7 +173,7 @@ Se a placa ficar travada em "Conectando Broker MQTT":
 2. Verifique se o broker está ouvindo em rede local (`0.0.0.0`), e não apenas em `127.0.0.1`.
 3. Se não houver permissão de administrador no Windows, rode o fallback com `mosquitto.local.conf` na porta 1884 e atualize `configura_local.h` e Node-RED para a mesma porta.
 
-### 🔧 Troubleshooting Node-RED Dashboard
+### Troubleshooting Dashboard Node-RED
 
 Se ao importar o fluxo aparecer "Imported unrecognised types" para `ui_*`:
 

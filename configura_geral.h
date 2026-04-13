@@ -69,7 +69,7 @@
 #endif
 
 #ifndef MQTT_BROKER_PORT
-#define MQTT_BROKER_PORT 1883
+#define MQTT_BROKER_PORT 1884
 #endif
 
 // --- Limiares de Sensores para Lógica de Projeto ---
@@ -78,6 +78,27 @@
 
 // Definições de Timers (em microssegundos)
 #define TEMPO_MSG_PADRAO_US 2000000 // 2.0 segundos
+
+#ifndef DEBOUNCE_INTERVALO_US
+#define DEBOUNCE_INTERVALO_US 150000 // 150ms
+#endif
+
+// --- Delays de animacao do feedback visual ---
+#ifndef ERRO_FRAME_DELAY_US
+#define ERRO_FRAME_DELAY_US 200000 // 200ms por fase na animacao de erro
+#endif
+
+#ifndef TIMEOUT_FRAME_DELAY_US
+#define TIMEOUT_FRAME_DELAY_US 200000 // 200ms por fase na animacao de timeout
+#endif
+
+#ifndef FECHANDO_FRAME_DELAY_US
+#define FECHANDO_FRAME_DELAY_US 400000 // 400ms primeira fase animacao de fechamento
+#endif
+
+#ifndef FECHANDO_INTERVALO_FINAL_US
+#define FECHANDO_INTERVALO_FINAL_US 150000 // 150ms segunda fase animacao de fechamento
+#endif
 
 // --- Tópicos MQTT ---
 #define TOPICO_BASE_COMANDO_ESTADO "comando/estado"

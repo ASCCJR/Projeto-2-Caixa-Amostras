@@ -25,12 +25,17 @@ static void mqtt_connection_cb(mqtt_client_t *client_inst, void *arg, mqtt_conne
     (void)arg;
     if (status == MQTT_CONNECT_ACCEPTED) {
         if (multicore_fifo_wready()) {
-            multicore_fifo_push_blocking(FIFO_CMD_MQTT_CONECTADO << 16);
+            multicore_fifo_push_blocking(FIFO_CMD_MQTT_CONECTADO << 16); // sucesso: bits baixos = 0
         }
         mqtt_set_inpub_callback(client_inst, mqtt_incoming_publish_cb, mqtt_incoming_data_cb, NULL);
         static char topico_comando[100];
         snprintf(topico_comando, sizeof(topico_comando), "%s/%s", DEVICE_ID, TOPICO_BASE_COMANDO_ESTADO);
         mqtt_subscribe(client_inst, topico_comando, 1, mqtt_sub_cb, NULL);
+    } else {
+        // Notifica Core 0 da falha para não travar a inicialização
+        if (multicore_fifo_wready()) {
+            multicore_fifo_push_blocking((FIFO_CMD_MQTT_CONECTADO << 16) | 1); // falha: bits baixos = 1
+        }
     }
 }
 

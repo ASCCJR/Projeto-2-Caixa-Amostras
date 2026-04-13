@@ -13,6 +13,9 @@
 #include "configura_geral.h" // Arquivo de configuração geral do projeto (ex: pinos)
 #include <string.h>
 #include <math.h>
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 // Bibliotecas do SDK do Pico
 #include "pico/multicore.h"      // Para gerenciamento dos dois núcleos do RP2040
@@ -473,28 +476,29 @@ void handle_modo_aguarda_senha() {
     if (tecla != '\0') {
         buzzer_play_tone(1500, 50); // Feedback sonoro para cada tecla pressionada.
         
-        if (tecla == '#') { // Tecla de confirmação
-            bool senha_valida = false;
-            // Valida a senha digitada contra a senha armazenada para a cor ativa.
-            switch (fechadura.cor_ativa) {
-                case COR_VERDE: if (strcmp(fechadura.senha_digitada, SENHA_VERDE) == 0) senha_valida = true; break;
-                case COR_VERMELHA: if (strcmp(fechadura.senha_digitada, SENHA_VERMELHA) == 0) senha_valida = true; break;
-                case COR_AZUL: if (strcmp(fechadura.senha_digitada, SENHA_AZUL) == 0) senha_valida = true; break;
-                default: senha_valida = false; break;
-            }
-
-            if (senha_valida) {
-                acionar_abertura(); // Senha correta, abre a fechadura.
-            } else {
-                exibir_mensagem_temporaria(MSG_MODE_ACCESS_DENIED, 4000); // Senha incorreta.
-                mudar_modo(MODO_ESPERA);
-            }
-        } else if (tecla == '*') { // Tecla de cancelamento
+        if (tecla == '*') { // Tecla de cancelamento
             solicitar_publicacao_mqtt(MSG_LOG_OPERACAO_CANCELADA, fechadura.cor_ativa);
             mudar_modo(MODO_ESPERA);
         } else if (fechadura.digitos_count < 4) { // Adiciona dígito à senha
             fechadura.senha_digitada[fechadura.digitos_count++] = tecla;
-            fechadura.senha_digitada[fechadura.digitos_count] = '\0'; // Mantém o final nulo.
+            fechadura.senha_digitada[fechadura.digitos_count] = '\0';
+
+            // Confirma automaticamente ao completar 4 dígitos (igual ao Projeto-1)
+            if (fechadura.digitos_count == 4) {
+                bool senha_valida = false;
+                switch (fechadura.cor_ativa) {
+                    case COR_VERDE: if (strcmp(fechadura.senha_digitada, SENHA_VERDE) == 0) senha_valida = true; break;
+                    case COR_VERMELHA: if (strcmp(fechadura.senha_digitada, SENHA_VERMELHA) == 0) senha_valida = true; break;
+                    case COR_AZUL: if (strcmp(fechadura.senha_digitada, SENHA_AZUL) == 0) senha_valida = true; break;
+                    default: senha_valida = false; break;
+                }
+                if (senha_valida) {
+                    acionar_abertura();
+                } else {
+                    exibir_mensagem_temporaria(MSG_MODE_ACCESS_DENIED, 4000);
+                    mudar_modo(MODO_ESPERA);
+                }
+            }
         }
     }
 }
@@ -582,29 +586,24 @@ void handle_admin_aguardando_nova_senha() {
     if (tecla != '\0') {
         buzzer_play_tone(1500, 50);
         
-        if (tecla == '#') { // Confirmação da nova senha.
-            if (fechadura.digitos_count == 4) { // Verifica se a senha tem 4 dígitos.
-                // Copia a nova senha para a variável global correspondente.
+        if (tecla == '*') { // Cancelamento.
+            exibir_mensagem_temporaria(MSG_MODE_ADMIN_CANCELLED, 3000);
+            mudar_modo(MODO_ESPERA);
+        } else if (fechadura.digitos_count < 4) { // Adiciona dígito.
+            fechadura.senha_digitada[fechadura.digitos_count++] = tecla;
+            fechadura.senha_digitada[fechadura.digitos_count] = '\0';
+
+            // Salva automaticamente ao completar 4 dígitos (igual ao Projeto-1)
+            if (fechadura.digitos_count == 4) {
                 switch (fechadura.cor_ativa) {
                     case COR_VERDE: strcpy(SENHA_VERDE, fechadura.senha_digitada); break;
                     case COR_VERMELHA: strcpy(SENHA_VERMELHA, fechadura.senha_digitada); break;
                     case COR_AZUL: strcpy(SENHA_AZUL, fechadura.senha_digitada); break;
                     default: break;
                 }
-                exibir_mensagem_temporaria(MSG_MODE_ADMIN_SUCCESS, 5000); // Exibe sucesso.
-                mudar_modo(MODO_ESPERA); // Retorna ao modo de espera.
-            } else {
-                exibir_mensagem_temporaria(MSG_MODE_ADMIN_ERROR, 4000); // Exibe erro.
-                // Reseta a digitação para uma nova tentativa sem sair do modo.
-                fechadura.digitos_count = 0;
-                memset(fechadura.senha_digitada, 0, sizeof(fechadura.senha_digitada));
+                exibir_mensagem_temporaria(MSG_MODE_ADMIN_SUCCESS, 5000);
+                mudar_modo(MODO_ESPERA);
             }
-        } else if (tecla == '*') { // Cancelamento.
-            exibir_mensagem_temporaria(MSG_MODE_ADMIN_CANCELLED, 3000);
-            mudar_modo(MODO_ESPERA);
-        } else if (fechadura.digitos_count < 4) { // Adiciona dígito.
-            fechadura.senha_digitada[fechadura.digitos_count++] = tecla;
-            fechadura.senha_digitada[fechadura.digitos_count] = '\0';
         }
     }
 }
@@ -636,15 +635,15 @@ void inicia_hardware() {
 
     // Verifica se o sensor de cor foi inicializado corretamente.
     if (!tcs34725_init(i2c0)) {
-        display_show_message("ERRO FATAL", "TCS34725 falhou!", NULL);
-        rgb_led_set_color(PWM_MAX_DUTY, 0, 0); // LED vermelho de erro.
-        while (true) { tight_loop_contents(); } // Trava a execução.
+        display_show_message("AVISO", "TCS34725 falhou!", "Continuando...");
+        rgb_led_set_color(40000, 15000, 0); // Laranja = aviso não fatal.
+        sleep_ms(2000);
     }
     // Verifica se o sensor de temp/umidade foi inicializado corretamente.
     if (!aht10_init(i2c0)) {
-        display_show_message("ERRO FATAL", "AHT10 falhou!", NULL);
-        rgb_led_set_color(PWM_MAX_DUTY, 0, 0); // LED vermelho de erro.
-        while (true) { tight_loop_contents(); } // Trava a execução.
+        display_show_message("AVISO", "AHT10 falhou!", "Continuando...");
+        rgb_led_set_color(40000, 15000, 0);
+        sleep_ms(2000);
     }
     
     // Inicializa a estrutura de estado da fechadura com valores padrão.
@@ -693,12 +692,22 @@ int main() {
     // Aguarda a confirmação de conexão MQTT do núcleo 1.
     display_show_message("Rede", "Conectando Broker", "MQTT...");
     rgb_led_set_color(0, 20000, 40000); // Ciano durante conexão MQTT.
-    while(true) {
+    absolute_time_t timeout_mqtt = make_timeout_time_ms(15000); // 15s de timeout
+    bool mqtt_conectado = false;
+    while (!time_reached(timeout_mqtt)) {
         if (multicore_fifo_rvalid()) {
             fifo_response = multicore_fifo_pop_blocking();
-            if ((fifo_response >> 16) == FIFO_CMD_MQTT_CONECTADO) break;
+            if ((fifo_response >> 16) == FIFO_CMD_MQTT_CONECTADO) {
+                mqtt_conectado = (fifo_response & 0xFFFF) == 0;
+                break;
+            }
         }
         tight_loop_contents();
+    }
+    if (!mqtt_conectado) {
+        display_show_message("AVISO", "MQTT indisponivel", "Modo local ativo");
+        rgb_led_set_color(40000, 40000, 0); // Amarelo = aviso
+        sleep_ms(3000);
     }
 
     display_show_message("Caixa de Amostras", "Sistema Pronto", NULL);

@@ -18,18 +18,14 @@
 // Variáveis de controle para feedback_visual_erro_update
 static int erro_frame_atual = 0;
 static absolute_time_t erro_ultimo_frame_tempo;
-#define ERRO_FRAME_DELAY_US 200000 // 200ms por fase (ligado/desligado)
 
 // Variáveis de controle para feedback_visual_timeout_update
 static int timeout_frame_atual = 0;
 static absolute_time_t timeout_ultimo_frame_tempo;
-#define TIMEOUT_FRAME_DELAY_US 200000 // 200ms por fase (ligado/desligado)
 
 // Variáveis de controle para feedback_visual_fechando_update
 static int fechando_frame_atual = 0;
 static absolute_time_t fechando_ultimo_frame_tempo;
-#define FECHANDO_FRAME_DELAY_US 400000      // 400ms para a primeira fase
-#define FECHANDO_INTERVALO_FINAL_US 150000  // 150ms para a segunda fase
 
 
 // --- Implementação do Feedback Sonoro (Bloqueante) ---

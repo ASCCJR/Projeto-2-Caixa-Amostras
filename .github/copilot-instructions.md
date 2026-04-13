@@ -97,15 +97,18 @@ Boas praticas:
   - publicar em um topico de teste;
   - assinar o mesmo topico e validar recebimento.
 
-Exemplo de teste rapido (ajustar porta para 1884 se necessario):
-- Subscriber: `mosquitto_sub -h 127.0.0.1 -p 1883 -t copilot/test -C 1`
-- Publisher: `mosquitto_pub -h 127.0.0.1 -p 1883 -t copilot/test -m ok`
+Exemplo de teste rapido (porta padrao do projeto: 1884):
+- Subscriber: `mosquitto_sub -h 127.0.0.1 -p 1884 -t copilot/test -C 1`
+- Publisher: `mosquitto_pub -h 127.0.0.1 -p 1884 -t copilot/test -m ok`
 
 ### Troubleshooting Wi-Fi e MQTT (obrigatorio quando travar em "Conectando MQTT")
 
 Se a placa sair de Wi-Fi e ficar presa em "Conectando MQTT", a IA deve:
 
 1. Verificar IP atual da maquina host e confirmar se bate com `MQTT_BROKER_IP` (preferir `configura_local.h`).
+   - Descobrir IP no Windows: `ipconfig` (linha `Endereco IPv4` na interface Wi-Fi ativa).
+   - Em PowerShell: `(Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.InterfaceAlias -like "*Wi-Fi*"}).IPAddress`
+   - O IP muda a cada reconexao de rede; sempre reconfirmar antes de recompilar.
 2. Confirmar que o broker esta escutando em rede local, e nao apenas localhost.
   - Se `Get-NetTCPConnection` mostrar apenas `127.0.0.1`/`::1`, a Pico nao conseguira conectar.
 3. Quando houver permissao de administrador, ajustar `mosquitto.conf` para listener em rede local (ex.: `listener 1883 0.0.0.0`) e reiniciar servico.
@@ -138,6 +141,16 @@ Se ao importar o fluxo aparecer "Imported unrecognised types" para `ui_*` (ex.: 
 5. Pedir para o usuario recarregar o editor (Ctrl+F5), reimportar o JSON e fazer `Deploy`.
 6. Abrir/confirmar o dashboard em http://127.0.0.1:1880/ui.
 
+### Troubleshooting de texto corrompido (mojibake)
+
+Se o dashboard mostrar textos com `Ã`, `ðŸ` ou acentos/emojis quebrados:
+
+1. Confirmar que o arquivo `dashboard_projeto2.json` esta em UTF-8.
+2. Reimportar o fluxo no Node-RED e fazer `Deploy`.
+3. Se o deploy for via API REST, ler e enviar o JSON em UTF-8 explicito.
+  - em PowerShell: `Get-Content -Raw -Encoding utf8` e enviar body como bytes UTF-8.
+4. Validar visualmente no `/ui` se labels e textos voltaram ao normal.
+
 ## Passo 5: Build do firmware
 
 Usar a task existente do workspace:
@@ -153,8 +166,14 @@ Criterio de sucesso:
 
 ## Passo 6: Gravacao na placa (quando hardware conectado)
 
+Como ativar o modo BOOTSEL (obrigatorio para Run Project):
+1. Manter o botao BOOTSEL pressionado (botao pequeno na parte superior da placa Pico/BitDogLab).
+2. Com o botao pressionado, conectar o cabo USB ao computador.
+3. Soltar o botao BOOTSEL — a placa aparece como drive USB `RPI-RP2`.
+4. A task `Run Project` copia o `.uf2` gerado para o drive automaticamente.
+
 Tentar nesta ordem:
-1. Run Project (modo BOOTSEL).
+1. Run Project (modo BOOTSEL, passos acima).
 2. Flash (OpenOCD/CMSIS-DAP).
 
 Se falhar por dispositivo nao detectado:
